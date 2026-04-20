@@ -4,19 +4,19 @@ Go SDK for ZATCA e-invoicing integration (Saudi Arabia)
 
 ---
 
-## Features
+## 🚀 Features
 
-* CSR Generation
+* CSR Generation (supports Standard / Simplified / Both)
 * Compliance API (OTP onboarding)
-* Reporting API (Reporting Single)
-* Clearance API
+* Reporting API (Simplified invoices)
+* Clearance API (Standard invoices)
 * Production CSID
 * Invoice Signing (XAdES)
 * QR Code Generation (TLV)
 
 ---
 
-## Installation
+## 📦 Installation
 
 ```bash
 go get github.com/Muhammed-Magdy-dev/zatca-go@latest
@@ -24,9 +24,9 @@ go get github.com/Muhammed-Magdy-dev/zatca-go@latest
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
-### 1) Initialize Client
+### Initialize Client
 
 ```go
 client := client.New("https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation")
@@ -34,9 +34,11 @@ client := client.New("https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation")
 
 ---
 
-## Full Flow
+# 🔄 Full Flow
 
-### Step 1: Compliance (Onboarding)
+---
+
+## 1️⃣ Compliance (Onboarding)
 
 ```go
 res, err := client.Compliance(ctx, &client.ComplianceRequest{
@@ -52,7 +54,31 @@ Save:
 
 ---
 
-## Step 2: Build Invoice
+## 🧠 CSR InvoiceType (VERY IMPORTANT)
+
+| Value | Description                         |
+| ----- | ----------------------------------- |
+| 1100  | Standard + Simplified (Recommended) |
+| 1000  | Standard only                       |
+| 0100  | Simplified only                     |
+
+Example:
+
+```go
+csrInput := &csr.CSRInput{
+	VATNumber:        "...",
+	OrganizationName: "...",
+	BranchName:       "...",
+	SectorName:       "...",
+	Address:          "...",
+	CountryCode:      "SA",
+	InvoiceType:      "1100",
+}
+```
+
+---
+
+## 2️⃣ Build Invoice
 
 ```go
 input := &invoice.InvoiceInput{
@@ -62,6 +88,9 @@ input := &invoice.InvoiceInput{
 	ICV:       1,
 
 	InvoiceTypeCode: "388",
+
+	// 👇 IMPORTANT
+	IsSimplified: true, // true = simplified, false = standard
 
 	Supplier: invoice.SupplierInfo{
 		VATNumber:        "123456789012345",
@@ -89,9 +118,41 @@ input := &invoice.InvoiceInput{
 
 ---
 
-## ⚠️ Step 3: Certificate Handling (VERY IMPORTANT)
+## 🧾 Standard vs Simplified
 
-You MUST prepare certificate and hash manually before signing.
+### ✔️ Simplified (B2C)
+
+```go
+input.IsSimplified = true
+```
+
+* Uses Reporting API
+* Customer NOT required
+
+---
+
+### ✔️ Standard (B2B)
+
+```go
+input.IsSimplified = false
+```
+
+* Uses Clearance API
+* Customer REQUIRED
+
+```go
+input.Customer = &invoice.CustomerInfo{
+	VATNumber:        "123456789012345",
+	RegistrationName: "Customer Name",
+	Street:           "Riyadh",
+	City:             "Riyadh",
+	PostalCode:       "12345",
+}
+```
+
+---
+
+## ⚠️ Certificate Handling (VERY IMPORTANT)
 
 ```go
 certDER, err := cert.TokenToCertificateDER(binarySecurityToken)
@@ -112,7 +173,7 @@ input.CertificateHash = base64.StdEncoding.EncodeToString([]byte(hexStr))
 
 ---
 
-## Step 4: Sign Invoice
+## 3️⃣ Sign Invoice
 
 ```go
 finalXML, err := invoice.PrepareSignedInvoice(
@@ -122,24 +183,20 @@ finalXML, err := invoice.PrepareSignedInvoice(
 )
 ```
 
-SDK will handle:
+SDK handles:
 
-* XML building
+* XML generation
+* Signature
 * SignedProperties
-* SignatureValue
 * QR Code
 
 ---
 
-## Step 5: Send Reporting Invoice
+## 4️⃣ Send Invoice
+
+### 🔹 Simplified (Reporting)
 
 ```go
-payload := &client.ComplianceInvoiceRequest{
-	InvoiceHash: input.InvoiceDigest,
-	UUID:        input.UUID,
-	Invoice:     base64.StdEncoding.EncodeToString(finalXML),
-}
-
 res, err := client.SendReportingInvoice(
 	ctx,
 	binarySecurityToken,
@@ -150,7 +207,20 @@ res, err := client.SendReportingInvoice(
 
 ---
 
-## Step 6: Production CSID
+### 🔹 Standard (Clearance)
+
+```go
+res, err := client.SendClearanceInvoice(
+	ctx,
+	binarySecurityToken,
+	secret,
+	payload,
+)
+```
+
+---
+
+## 5️⃣ Production CSID
 
 ```go
 res, err := client.GetProductionCSID(
@@ -163,38 +233,54 @@ res, err := client.GetProductionCSID(
 
 ---
 
-## Flow Summary
+# 🔥 Flow Summary
 
 1. Generate CSR
-2. Call Compliance (OTP)
+2. Compliance (OTP)
 3. Save credentials
 4. Build invoice
-5. Generate Certificate Hash (manual step)
+5. Generate Certificate Hash
 6. Sign invoice
-7. Send Reporting / Clearance
+7. Send (Reporting / Clearance)
 8. Move to Production
 
 ---
 
-## Important Notes
+# ⚠️ Critical Rules
 
-* CertificateHash must be calculated exactly as shown
-* Do NOT modify signed XML manually
-* Always use previous invoice hash
-* Use Simulation before Production
-* OTP is required only once during onboarding
-
----
-
-## Common Mistakes
-
-❌ Forgetting CertificateHash
-❌ Using wrong Base64 encoding
-❌ Sending unsigned XML
-❌ Using wrong InvoiceTypeCode
+* `CertificateHash` must be EXACT
+* Do NOT modify signed XML
+* Standard requires Customer
+* Simplified must NOT include Customer
+* Always send previous invoice hash
+* Use correct endpoint
 
 ---
 
-## License
+# ❌ Common Mistakes
+
+* Missing CertificateHash
+* Using wrong Base64 encoding
+* Sending unsigned XML
+* Wrong InvoiceTypeCode
+* Sending Standard via Reporting
+* Sending Simplified via Clearance
+* Customer missing in Standard
+
+---
+
+# 🧠 Best Practice
+
+Always use:
+
+```go
+InvoiceType: "1100"
+```
+
+during onboarding to support all invoice types.
+
+---
+
+# 📄 License
 
 MIT
