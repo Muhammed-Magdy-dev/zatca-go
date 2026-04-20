@@ -164,13 +164,16 @@ func normalizeInvoiceType(v string) (string, error) {
 	t := strings.TrimSpace(strings.ToLower(v))
 
 	switch t {
-	case "", "both", "all", "standard+simplified", "simplified+standard", "1100":
+	case "", "both", "1100":
 		return "1100", nil
-	case "standard", "0100":
+
+	case "standard", "1000":
+		return "1000", nil
+
+	case "simplified", "0100":
 		return "0100", nil
-	case "simplified", "0200":
-		return "0200", nil
+
 	default:
-		return "", fmt.Errorf("zatca: invalid invoice type %q, allowed: standard, simplified, both", v)
+		return "", fmt.Errorf("zatca: invalid invoice type %q", v)
 	}
 }
