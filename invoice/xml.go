@@ -393,6 +393,24 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 	hasCustomer := input.Customer != nil &&
 		input.Customer.RegistrationName != "" &&
 		input.Customer.VATNumber != ""
+
+	var customerStreet string
+	var customerBuildingNumber string
+	var customerDistrict string
+	var customerCity string
+	var customerPostalCode string
+	var customerVATNumber string
+	var customerRegistrationName string
+
+	if input.Customer != nil {
+		customerStreet = input.Customer.Street
+		customerBuildingNumber = input.Customer.BuildingNumber
+		customerDistrict = input.Customer.District
+		customerCity = input.Customer.City
+		customerPostalCode = input.Customer.PostalCode
+		customerVATNumber = input.Customer.VATNumber
+		customerRegistrationName = input.Customer.RegistrationName
+	}
 	data := tmplData{
 		SigningTime:              signingTimeStr,
 		CertificateHash:          input.CertificateHash,
@@ -432,13 +450,13 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		InstructionNote:          input.InstructionNote,
 		SignedPropertiesXML:      string(signedPropsXML),
 		HasCustomer:              hasCustomer,
-		CustomerStreet:           input.Customer.Street,
-		CustomerBuildingNumber:   input.Customer.BuildingNumber,
-		CustomerDistrict:         input.Customer.District,
-		CustomerCity:             input.Customer.City,
-		CustomerPostalCode:       input.Customer.PostalCode,
-		CustomerVATNumber:        input.Customer.VATNumber,
-		CustomerRegistrationName: input.Customer.RegistrationName,
+		CustomerStreet:           customerStreet,
+		CustomerBuildingNumber:   customerBuildingNumber,
+		CustomerDistrict:         customerDistrict,
+		CustomerCity:             customerCity,
+		CustomerPostalCode:       customerPostalCode,
+		CustomerVATNumber:        customerVATNumber,
+		CustomerRegistrationName: customerRegistrationName,
 		InvoiceTypeName:          invoiceTypeName,
 	}
 
