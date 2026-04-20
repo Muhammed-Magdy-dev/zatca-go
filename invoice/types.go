@@ -14,21 +14,22 @@ type InvoiceInput struct {
 	CertificateSignatureBytes []byte
 	PreviousInvoiceHash       string
 	Supplier                  SupplierInfo
+	Customer                  *Party
 	PaymentMeansCode          string
 	Lines                     []InvoiceLine
 	InvoiceLevelACs           []AllowanceCharge
-
-	QRCode             string
-	CertificateHash    string
-	IssuerName         string
-	SerialNumber       string
-	X509Certificate    string
-	InvoiceDigest      string
-	SignedPropsDigest  string
-	SignatureValue     string
-	BillingReferenceID string
-	InvoiceTypeCode    string
-	InstructionNote    string
+	IsSimplified              bool
+	QRCode                    string
+	CertificateHash           string
+	IssuerName                string
+	SerialNumber              string
+	X509Certificate           string
+	InvoiceDigest             string
+	SignedPropsDigest         string
+	SignatureValue            string
+	BillingReferenceID        string
+	InvoiceTypeCode           string
+	InstructionNote           string
 }
 
 type AllowanceCharge struct {

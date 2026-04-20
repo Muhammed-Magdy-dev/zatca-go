@@ -28,6 +28,7 @@ type CSRInput struct {
 	Address          string
 	CountryCode      string
 	PosID            *uuid.UUID
+	InvoiceType      string
 }
 
 type CsrConfig struct {
@@ -75,7 +76,10 @@ func BuildCSRConfig(data *CSRInput, baseURL string) (*CsrConfig, error) {
 
 	env := determineEnvironment(baseURL)
 	serial := buildSerialNumber(orgName, commonName, data.PosID)
-
+	invoiceType, err := normalizeInvoiceType(data.InvoiceType)
+	if err != nil {
+		return nil, err
+	}
 	cfg := &CsrConfig{
 		CountryName:              country,
 		OrganizationName:         orgName,
@@ -85,7 +89,7 @@ func BuildCSRConfig(data *CSRInput, baseURL string) (*CsrConfig, error) {
 		OrganizationIdentifier:   vat,
 		LocationAddress:          address,
 		IndustryBusinessCategory: sector,
-		InvoiceType:              defaultInvoiceType,
+		InvoiceType:              invoiceType,
 		Environment:              env,
 	}
 
@@ -155,4 +159,18 @@ func sanitizeSerialComponent(value string, fallback string) string {
 	}
 
 	return result
+}
+func normalizeInvoiceType(v string) (string, error) {
+	t := strings.TrimSpace(strings.ToLower(v))
+
+	switch t {
+	case "", "both", "all", "standard+simplified", "simplified+standard", "1100":
+		return "1100", nil
+	case "standard", "0100":
+		return "0100", nil
+	case "simplified", "0200":
+		return "0200", nil
+	default:
+		return "", fmt.Errorf("zatca: invalid invoice type %q, allowed: standard, simplified, both", v)
+	}
 }

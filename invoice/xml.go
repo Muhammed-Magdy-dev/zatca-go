@@ -15,6 +15,17 @@ type tmplAC struct {
 	VATRate       string
 	TaxCategoryID string
 }
+type Party struct {
+	CRN              string
+	VATNumber        string
+	RegistrationName string
+	Street           string
+	BuildingNumber   string
+	PlotID           string
+	District         string
+	City             string
+	PostalCode       string
+}
 
 type tmplLine struct {
 	ID            string
@@ -31,43 +42,52 @@ type tmplLine struct {
 }
 
 type tmplData struct {
-	SigningTime         string
-	CertificateHash     string
-	IssuerName          string
-	SerialNumber        string
-	X509Certificate     string
-	InvoiceDigest       string
-	SignedPropsDigest   string
-	SignatureValue      string
-	ID                  string
-	UUID                string
-	IssueDate           string
-	IssueTime           string
-	ICV                 string
-	PreviousInvoiceHash string
-	QRCode              string
-	CRN                 string
-	VATNumber           string
-	RegistrationName    string
-	Street              string
-	BuildingNumber      string
-	PlotID              string
-	District            string
-	City                string
-	PostalCode          string
-	PaymentMeansCode    string
-	LineExtensionAmount string
-	TaxExclusiveAmount  string
-	TaxInclusiveAmount  string
-	AllowanceTotal      string
-	ChargeTotal         string
-	TaxAmount           string
-	Lines               []tmplLine
-	InvoiceLevelACs     []tmplAC
-	BillingReferenceID  string
-	InvoiceTypeCode     string
-	InstructionNote     string
-	SignedPropertiesXML string
+	SigningTime              string
+	CertificateHash          string
+	IssuerName               string
+	SerialNumber             string
+	X509Certificate          string
+	InvoiceDigest            string
+	SignedPropsDigest        string
+	SignatureValue           string
+	ID                       string
+	UUID                     string
+	IssueDate                string
+	IssueTime                string
+	ICV                      string
+	PreviousInvoiceHash      string
+	QRCode                   string
+	CRN                      string
+	VATNumber                string
+	RegistrationName         string
+	Street                   string
+	BuildingNumber           string
+	PlotID                   string
+	District                 string
+	City                     string
+	PostalCode               string
+	PaymentMeansCode         string
+	LineExtensionAmount      string
+	TaxExclusiveAmount       string
+	TaxInclusiveAmount       string
+	AllowanceTotal           string
+	ChargeTotal              string
+	TaxAmount                string
+	Lines                    []tmplLine
+	InvoiceLevelACs          []tmplAC
+	BillingReferenceID       string
+	InvoiceTypeCode          string
+	InstructionNote          string
+	SignedPropertiesXML      string
+	HasCustomer              bool
+	CustomerStreet           string
+	CustomerBuildingNumber   string
+	CustomerDistrict         string
+	CustomerCity             string
+	CustomerPostalCode       string
+	CustomerVATNumber        string
+	CustomerRegistrationName string
+	InvoiceTypeName          string
 }
 
 const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -130,7 +150,7 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <cbc:UUID>{{.UUID}}</cbc:UUID>
 <cbc:IssueDate>{{.IssueDate}}</cbc:IssueDate>
 <cbc:IssueTime>{{.IssueTime}}</cbc:IssueTime>
-<cbc:InvoiceTypeCode name="0200000">{{.InvoiceTypeCode}}</cbc:InvoiceTypeCode>
+<cbc:InvoiceTypeCode name="{{.InvoiceTypeName}}">{{.InvoiceTypeCode}}</cbc:InvoiceTypeCode>
 <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
 <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
 {{if .BillingReferenceID}}
@@ -187,7 +207,33 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </cac:PartyLegalEntity>
 </cac:Party>
 </cac:AccountingSupplierParty>
+{{if .HasCustomer}}
+<cac:AccountingCustomerParty>
+<cac:Party>
+<cac:PostalAddress>
+<cbc:StreetName>{{.CustomerStreet}}</cbc:StreetName>
+<cbc:BuildingNumber>{{.CustomerBuildingNumber}}</cbc:BuildingNumber>
+<cbc:CitySubdivisionName>{{.CustomerDistrict}}</cbc:CitySubdivisionName>
+<cbc:CityName>{{.CustomerCity}}</cbc:CityName>
+<cbc:PostalZone>{{.CustomerPostalCode}}</cbc:PostalZone>
+<cac:Country>
+<cbc:IdentificationCode>SA</cbc:IdentificationCode>
+</cac:Country>
+</cac:PostalAddress>
+<cac:PartyTaxScheme>
+<cbc:CompanyID>{{.CustomerVATNumber}}</cbc:CompanyID>
+<cac:TaxScheme>
+<cbc:ID>VAT</cbc:ID>
+</cac:TaxScheme>
+</cac:PartyTaxScheme>
+<cac:PartyLegalEntity>
+<cbc:RegistrationName>{{.CustomerRegistrationName}}</cbc:RegistrationName>
+</cac:PartyLegalEntity>
+</cac:Party>
+</cac:AccountingCustomerParty>
+{{else}}
 <cac:AccountingCustomerParty/>
+{{end}}
 <cac:PaymentMeans>
 <cbc:PaymentMeansCode>{{.PaymentMeansCode}}</cbc:PaymentMeansCode>
 {{if .InstructionNote}}
@@ -339,45 +385,61 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("zatca: build signed properties error: %w", err)
 	}
+	invoiceTypeName := "0100000"
 
+	if input.IsSimplified {
+		invoiceTypeName = "0200000"
+	}
+	hasCustomer := input.Customer != nil &&
+		input.Customer.RegistrationName != "" &&
+		input.Customer.VATNumber != ""
 	data := tmplData{
-		SigningTime:         signingTimeStr,
-		CertificateHash:     input.CertificateHash,
-		IssuerName:          input.IssuerName,
-		SerialNumber:        input.SerialNumber,
-		X509Certificate:     input.X509Certificate,
-		InvoiceDigest:       input.InvoiceDigest,
-		SignedPropsDigest:   input.SignedPropsDigest,
-		SignatureValue:      input.SignatureValue,
-		ID:                  input.ID,
-		UUID:                input.UUID,
-		IssueDate:           issueDateStr,
-		IssueTime:           issueTimeStr,
-		ICV:                 fmt.Sprintf("%d", input.ICV),
-		PreviousInvoiceHash: encodePIH(input.PreviousInvoiceHash),
-		QRCode:              input.QRCode,
-		CRN:                 input.Supplier.CRN,
-		VATNumber:           input.Supplier.VATNumber,
-		RegistrationName:    input.Supplier.RegistrationName,
-		Street:              input.Supplier.Street,
-		BuildingNumber:      input.Supplier.BuildingNumber,
-		PlotID:              input.Supplier.PlotID,
-		District:            input.Supplier.District,
-		City:                input.Supplier.City,
-		PostalCode:          input.Supplier.PostalCode,
-		PaymentMeansCode:    input.PaymentMeansCode,
-		LineExtensionAmount: fmt.Sprintf("%.2f", totals.LineExtensionAmount),
-		TaxExclusiveAmount:  fmt.Sprintf("%.2f", totals.TaxExclusiveAmount),
-		TaxInclusiveAmount:  fmt.Sprintf("%.2f", totals.TaxInclusiveAmount),
-		AllowanceTotal:      fmt.Sprintf("%.2f", totals.AllowanceTotal),
-		ChargeTotal:         fmt.Sprintf("%.2f", totals.ChargeTotal),
-		TaxAmount:           fmt.Sprintf("%.2f", totals.TaxAmount),
-		Lines:               lines,
-		InvoiceLevelACs:     invoiceACs,
-		BillingReferenceID:  input.BillingReferenceID,
-		InvoiceTypeCode:     input.InvoiceTypeCode,
-		InstructionNote:     input.InstructionNote,
-		SignedPropertiesXML: string(signedPropsXML),
+		SigningTime:              signingTimeStr,
+		CertificateHash:          input.CertificateHash,
+		IssuerName:               input.IssuerName,
+		SerialNumber:             input.SerialNumber,
+		X509Certificate:          input.X509Certificate,
+		InvoiceDigest:            input.InvoiceDigest,
+		SignedPropsDigest:        input.SignedPropsDigest,
+		SignatureValue:           input.SignatureValue,
+		ID:                       input.ID,
+		UUID:                     input.UUID,
+		IssueDate:                issueDateStr,
+		IssueTime:                issueTimeStr,
+		ICV:                      fmt.Sprintf("%d", input.ICV),
+		PreviousInvoiceHash:      encodePIH(input.PreviousInvoiceHash),
+		QRCode:                   input.QRCode,
+		CRN:                      input.Supplier.CRN,
+		VATNumber:                input.Supplier.VATNumber,
+		RegistrationName:         input.Supplier.RegistrationName,
+		Street:                   input.Supplier.Street,
+		BuildingNumber:           input.Supplier.BuildingNumber,
+		PlotID:                   input.Supplier.PlotID,
+		District:                 input.Supplier.District,
+		City:                     input.Supplier.City,
+		PostalCode:               input.Supplier.PostalCode,
+		PaymentMeansCode:         input.PaymentMeansCode,
+		LineExtensionAmount:      fmt.Sprintf("%.2f", totals.LineExtensionAmount),
+		TaxExclusiveAmount:       fmt.Sprintf("%.2f", totals.TaxExclusiveAmount),
+		TaxInclusiveAmount:       fmt.Sprintf("%.2f", totals.TaxInclusiveAmount),
+		AllowanceTotal:           fmt.Sprintf("%.2f", totals.AllowanceTotal),
+		ChargeTotal:              fmt.Sprintf("%.2f", totals.ChargeTotal),
+		TaxAmount:                fmt.Sprintf("%.2f", totals.TaxAmount),
+		Lines:                    lines,
+		InvoiceLevelACs:          invoiceACs,
+		BillingReferenceID:       input.BillingReferenceID,
+		InvoiceTypeCode:          input.InvoiceTypeCode,
+		InstructionNote:          input.InstructionNote,
+		SignedPropertiesXML:      string(signedPropsXML),
+		HasCustomer:              hasCustomer,
+		CustomerStreet:           input.Customer.Street,
+		CustomerBuildingNumber:   input.Customer.BuildingNumber,
+		CustomerDistrict:         input.Customer.District,
+		CustomerCity:             input.Customer.City,
+		CustomerPostalCode:       input.Customer.PostalCode,
+		CustomerVATNumber:        input.Customer.VATNumber,
+		CustomerRegistrationName: input.Customer.RegistrationName,
+		InvoiceTypeName:          invoiceTypeName,
 	}
 
 	funcMap := template.FuncMap{
