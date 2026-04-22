@@ -21,14 +21,16 @@ const (
 var vatDigitsOnly = regexp.MustCompile(`\D+`)
 
 type CSRInput struct {
-	VATNumber        string
-	OrganizationName string
-	BranchName       string
-	SectorName       string
-	Address          string
-	CountryCode      string
-	PosID            *uuid.UUID
-	InvoiceType      string
+	VATNumber            string
+	CommonName           string
+	OrganizationUnitName string
+	OrganizationName     string
+	BranchName           string
+	SectorName           string
+	Address              string
+	CountryCode          string
+	PosID                *uuid.UUID
+	InvoiceType          string
 }
 
 type CsrConfig struct {
