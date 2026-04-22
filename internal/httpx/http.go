@@ -52,7 +52,7 @@ func DoRequest(
 
 	bd, _ := io.ReadAll(res.Body)
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK || res.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("zatca status %d: %s", res.StatusCode, string(bd))
 	}
 
