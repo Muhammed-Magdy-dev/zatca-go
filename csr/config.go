@@ -77,7 +77,7 @@ func BuildCSRConfig(data *CSRInput, baseURL string) (*CsrConfig, error) {
 	}
 
 	env := determineEnvironment(baseURL)
-	serial := buildSerialNumber(orgName, commonName, data.PosID)
+	serial := buildSerialNumber("Wasfa", commonName, data.PosID)
 	invoiceType, err := normalizeInvoiceType(data.InvoiceType)
 	if err != nil {
 		return nil, err
