@@ -67,7 +67,6 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 	for _, ac := range input.InvoiceLevelACs {
 
 		if ac.Indicator {
-
 			chargeTotal += ac.Gross
 
 			if ac.TaxCategoryCode == "S" {
@@ -77,7 +76,6 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 			}
 
 		} else {
-
 			allowanceTotal += ac.Amount
 
 			if ac.TaxCategoryCode == "S" {
