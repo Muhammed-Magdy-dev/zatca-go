@@ -13,7 +13,6 @@ type lineTotals struct {
 }
 
 func calcLine(l InvoiceLine) lineTotals {
-
 	baseTotal := round2(l.Quantity * l.Price)
 
 	var discountTotal float64
@@ -23,14 +22,13 @@ func calcLine(l InvoiceLine) lineTotals {
 		}
 	}
 
-	lineTotal := baseTotal
-	taxable := round2(baseTotal - discountTotal)
-	tax := round2(taxable * l.VATRate / 100)
+	lineTotal := round2(baseTotal - discountTotal)
+	tax := round2(lineTotal * l.VATRate / 100)
 
 	return lineTotals{
 		LineTotal:    lineTotal,
 		TaxAmount:    tax,
-		TotalWithVAT: round2(taxable + tax),
+		TotalWithVAT: round2(lineTotal + tax),
 	}
 }
 
