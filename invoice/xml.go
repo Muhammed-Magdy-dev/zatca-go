@@ -91,6 +91,9 @@ type tmplData struct {
 	TaxableAmountS           string
 	TaxAmountS               string
 	TaxableAmountO           string
+	ReasonCode               string
+	HasS                     bool
+	HasO                     bool
 }
 
 const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -260,6 +263,8 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 {{end}}
 <cac:TaxTotal>
     <cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
+
+    {{if .HasS}}
     <cac:TaxSubtotal>
         <cbc:TaxableAmount currencyID="SAR">{{.TaxableAmountS}}</cbc:TaxableAmount>
         <cbc:TaxAmount currencyID="SAR">{{.TaxAmountS}}</cbc:TaxAmount>
@@ -271,17 +276,25 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
             </cac:TaxScheme>
         </cac:TaxCategory>
     </cac:TaxSubtotal>
+    {{end}}
+
+    {{if .HasO}}
     <cac:TaxSubtotal>
         <cbc:TaxableAmount currencyID="SAR">{{.TaxableAmountO}}</cbc:TaxableAmount>
         <cbc:TaxAmount currencyID="SAR">0.00</cbc:TaxAmount>
-        <cac:TaxCategory>
-            <cbc:ID>O</cbc:ID>
-            <cbc:Percent>0.00</cbc:Percent>
-            <cac:TaxScheme>
-                <cbc:ID>VAT</cbc:ID>
-            </cac:TaxScheme>
-        </cac:TaxCategory>
+       <cac:TaxCategory>
+    <cbc:ID>O</cbc:ID>
+    <cbc:Percent>0.00</cbc:Percent>
+
+   <cbc:TaxExemptionReasonCode>{{.ReasonCode}}</cbc:TaxExemptionReasonCode>
+    <cbc:TaxExemptionReason>Out of scope of VAT</cbc:TaxExemptionReason>
+
+    <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+    </cac:TaxScheme>
+</cac:TaxCategory>
     </cac:TaxSubtotal>
+    {{end}}
 
 </cac:TaxTotal>
 
@@ -428,7 +441,7 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		customerVATNumber = input.Customer.VATNumber
 		customerRegistrationName = input.Customer.RegistrationName
 	}
-	taxAmountS := round2(totals.TaxableAmountS * 0.15)
+
 	data := tmplData{
 		SigningTime:              signingTimeStr,
 		CertificateHash:          input.CertificateHash,
@@ -477,8 +490,11 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		CustomerRegistrationName: customerRegistrationName,
 		InvoiceTypeName:          invoiceTypeName,
 		TaxableAmountS:           fmt.Sprintf("%.2f", totals.TaxableAmountS),
-		TaxAmountS:               fmt.Sprintf("%.2f", taxAmountS),
+		TaxAmountS:               fmt.Sprintf("%.2f", totals.TaxAmountS),
 		TaxableAmountO:           fmt.Sprintf("%.2f", totals.TaxableAmountO),
+		HasS:                     totals.TaxableAmountS > 0,
+		HasO:                     totals.TaxableAmountO > 0,
+		ReasonCode:               getExemptionCode("O"),
 	}
 
 	funcMap := template.FuncMap{
@@ -508,4 +524,14 @@ func BuildSignedPropertiesXML(input *InvoiceInput) ([]byte, error) {
 	)
 
 	return []byte(xmlString), nil
+}
+func getExemptionCode(taxCategory string) string {
+	switch taxCategory {
+	case "O":
+		return "VATEX-SA-OOS"
+	case "E":
+		return "VATEX-SA-29"
+	default:
+		return ""
+	}
 }
