@@ -45,16 +45,17 @@ type InvoiceTotals struct {
 }
 
 func CalculateTotals(input *InvoiceInput) InvoiceTotals {
-	var lineExtension, taxAmount float64
 
+	var lineExtension float64
 	var taxableS float64
 	var taxableO float64
+	var allowanceTotal float64
+	var chargeTotal float64
 
 	for _, l := range input.Lines {
 		t := calcLine(l)
 
 		lineExtension += t.LineTotal
-		taxAmount += t.TaxAmount
 
 		if l.VATRate > 0 {
 			taxableS += t.LineTotal
@@ -63,17 +64,13 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 		}
 	}
 
-	var allowanceTotal, chargeTotal float64
 	for _, ac := range input.InvoiceLevelACs {
-
-		acTax := round2(ac.Amount * ac.VATRate / 100)
 
 		if ac.Indicator {
 			chargeTotal += ac.Amount
 
 			if ac.TaxCategoryCode == "S" {
 				taxableS += ac.Amount
-				taxAmount += acTax
 			} else {
 				taxableO += ac.Amount
 			}
@@ -83,17 +80,17 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 
 			if ac.TaxCategoryCode == "S" {
 				taxableS -= ac.Amount
-				taxAmount -= acTax
 			} else {
 				taxableO -= ac.Amount
 			}
 		}
 	}
 
-	taxExclusive := round2(lineExtension - allowanceTotal + chargeTotal)
-	taxAmount = round2(taxAmount)
-	taxInclusive := round2(taxExclusive + taxAmount)
+	taxableS = round2(taxableS)
 	taxAmountS := round2(taxableS * 0.15)
+
+	taxExclusive := round2(lineExtension - allowanceTotal + chargeTotal)
+	taxInclusive := round2(taxExclusive + taxAmountS)
 
 	return InvoiceTotals{
 		LineExtensionAmount: round2(lineExtension),
@@ -101,9 +98,9 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 		TaxInclusiveAmount:  taxInclusive,
 		AllowanceTotal:      round2(allowanceTotal),
 		ChargeTotal:         round2(chargeTotal),
-		TaxAmount:           taxAmount,
+		TaxAmount:           taxAmountS,
 
-		TaxableAmountS: round2(taxableS),
+		TaxableAmountS: taxableS,
 		TaxAmountS:     taxAmountS,
 		TaxableAmountO: round2(taxableO),
 	}
