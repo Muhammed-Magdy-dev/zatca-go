@@ -88,7 +88,6 @@ type tmplData struct {
 	CustomerVATNumber        string
 	CustomerRegistrationName string
 	InvoiceTypeName          string
-	ProfileID                string
 }
 
 const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -146,7 +145,7 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </ext:ExtensionContent>
 </ext:UBLExtension>
 </ext:UBLExtensions>
-<cbc:ProfileID>{{.ProfileID}}</cbc:ProfileID>
+<cbc:ProfileID>reporting:1.0</cbc:ProfileID>
 <cbc:ID>{{.ID}}</cbc:ID>
 <cbc:UUID>{{.UUID}}</cbc:UUID>
 <cbc:IssueDate>{{.IssueDate}}</cbc:IssueDate>
@@ -412,10 +411,6 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		customerVATNumber = input.Customer.VATNumber
 		customerRegistrationName = input.Customer.RegistrationName
 	}
-	profileID := "reporting:1.0"
-	if !input.IsSimplified {
-		profileID = "clearance:1.0"
-	}
 	data := tmplData{
 		SigningTime:              signingTimeStr,
 		CertificateHash:          input.CertificateHash,
@@ -463,7 +458,6 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		CustomerVATNumber:        customerVATNumber,
 		CustomerRegistrationName: customerRegistrationName,
 		InvoiceTypeName:          invoiceTypeName,
-		ProfileID:                profileID,
 	}
 
 	funcMap := template.FuncMap{
