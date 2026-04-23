@@ -88,6 +88,9 @@ type tmplData struct {
 	CustomerVATNumber        string
 	CustomerRegistrationName string
 	InvoiceTypeName          string
+	TaxableAmountS           string
+	TaxAmountS               string
+	TaxableAmountO           string
 }
 
 const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -256,21 +259,35 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </cac:AllowanceCharge>
 {{end}}
 <cac:TaxTotal>
-<cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
-<cac:TaxSubtotal>
-<cbc:TaxableAmount currencyID="SAR">{{.TaxExclusiveAmount}}</cbc:TaxableAmount>
-<cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
-<cac:TaxCategory>
-<cbc:ID>S</cbc:ID>
-<cbc:Percent>15.00</cbc:Percent>
-<cac:TaxScheme>
-<cbc:ID>VAT</cbc:ID>
-</cac:TaxScheme>
-</cac:TaxCategory>
-</cac:TaxSubtotal>
+    <cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+        <cbc:TaxableAmount currencyID="SAR">{{.TaxableAmountS}}</cbc:TaxableAmount>
+        <cbc:TaxAmount currencyID="SAR">{{.TaxAmountS}}</cbc:TaxAmount>
+        <cac:TaxCategory>
+            <cbc:ID>S</cbc:ID>
+            <cbc:Percent>15.00</cbc:Percent>
+            <cac:TaxScheme>
+                <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+        </cac:TaxCategory>
+    </cac:TaxSubtotal>
+    <cac:TaxSubtotal>
+        <cbc:TaxableAmount currencyID="SAR">{{.TaxableAmountO}}</cbc:TaxableAmount>
+        <cbc:TaxAmount currencyID="SAR">0.00</cbc:TaxAmount>
+        <cac:TaxCategory>
+            <cbc:ID>O</cbc:ID>
+            <cbc:Percent>0.00</cbc:Percent>
+            <cac:TaxScheme>
+                <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+        </cac:TaxCategory>
+    </cac:TaxSubtotal>
+
 </cac:TaxTotal>
+
+<!-- Required duplicate total -->
 <cac:TaxTotal>
-<cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
+    <cbc:TaxAmount currencyID="SAR">{{.TaxAmount}}</cbc:TaxAmount>
 </cac:TaxTotal>
 <cac:LegalMonetaryTotal>
 <cbc:LineExtensionAmount currencyID="SAR">{{.LineExtensionAmount}}</cbc:LineExtensionAmount>
@@ -411,6 +428,7 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		customerVATNumber = input.Customer.VATNumber
 		customerRegistrationName = input.Customer.RegistrationName
 	}
+	taxAmountS := round2(totals.TaxableAmountS * 0.15)
 	data := tmplData{
 		SigningTime:              signingTimeStr,
 		CertificateHash:          input.CertificateHash,
@@ -458,6 +476,9 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		CustomerVATNumber:        customerVATNumber,
 		CustomerRegistrationName: customerRegistrationName,
 		InvoiceTypeName:          invoiceTypeName,
+		TaxableAmountS:           fmt.Sprintf("%.2f", totals.TaxableAmountS),
+		TaxAmountS:               fmt.Sprintf("%.2f", taxAmountS),
+		TaxableAmountO:           fmt.Sprintf("%.2f", totals.TaxableAmountO),
 	}
 
 	funcMap := template.FuncMap{

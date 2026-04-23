@@ -30,6 +30,9 @@ type InvoiceInput struct {
 	BillingReferenceID        string
 	InvoiceTypeCode           string
 	InstructionNote           string
+	TaxableAmountS            float64
+	TaxAmountS                float64
+	TaxableAmountO            float64
 }
 
 type AllowanceCharge struct {
@@ -39,6 +42,7 @@ type AllowanceCharge struct {
 	Amount          float64
 	VATRate         float64
 	TaxCategoryCode string
+	Gross           float64
 }
 
 type SupplierInfo struct {
@@ -61,4 +65,5 @@ type InvoiceLine struct {
 	Price         float64
 	VATRate       float64
 	ItemDiscounts []AllowanceCharge
+	Subtotal      float64
 }
