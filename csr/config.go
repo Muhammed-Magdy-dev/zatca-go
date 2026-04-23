@@ -61,19 +61,14 @@ func BuildCSRConfig(data *CSRInput, baseURL string) (*CsrConfig, error) {
 	}
 
 	orgName := pickString(&data.OrganizationName, defaultOrgName)
-	branchName := pickString(&data.BranchName, defaultDeviceName)
+	commonName := pickString(&data.CommonName, defaultDeviceName)
+	orgUnit := pickString(&data.OrganizationUnitName, defaultDeviceName)
 	sector := pickString(&data.SectorName, defaultSector)
 	address := pickString(&data.Address, defaultAddress)
 
 	country := defaultCountryCode
 	if strings.TrimSpace(data.CountryCode) != "" {
 		country = strings.ToUpper(strings.TrimSpace(data.CountryCode))
-	}
-
-	commonName := branchName
-	orgUnit := branchName
-	if orgUnit == "" {
-		orgUnit = defaultDeviceName
 	}
 
 	env := determineEnvironment(baseURL)
