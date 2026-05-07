@@ -54,6 +54,7 @@ type tmplData struct {
 	UUID                     string
 	IssueDate                string
 	IssueTime                string
+	ActualDeliveryDate       string
 	ICV                      string
 	PreviousInvoiceHash      string
 	QRCode                   string
@@ -94,6 +95,7 @@ type tmplData struct {
 	ReasonCode               string
 	HasS                     bool
 	HasO                     bool
+	ShowActualDeliveryDate   bool
 }
 
 const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -159,6 +161,11 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <cbc:InvoiceTypeCode name="{{.InvoiceTypeName}}">{{.InvoiceTypeCode}}</cbc:InvoiceTypeCode>
 <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
 <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
+{{if .ShowActualDeliveryDate}}
+<cac:Delivery>
+<cbc:ActualDeliveryDate>{{.ActualDeliveryDate}}</cbc:ActualDeliveryDate>
+</cac:Delivery>
+{{end}}
 {{if .BillingReferenceID}}
 <cac:BillingReference>
   <cac:InvoiceDocumentReference>
@@ -363,6 +370,15 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 	baseTime := input.IssueDate
 	issueDateStr := baseTime.Format("2006-01-02")
 	issueTimeStr := baseTime.Format("15:04:05")
+	showActualDeliveryDate := !input.IsSimplified && input.InvoiceTypeCode == "388"
+	actualDeliveryDateStr := ""
+	if showActualDeliveryDate {
+		actualDeliveryDate := input.ActualDeliveryDate
+		if actualDeliveryDate.IsZero() {
+			actualDeliveryDate = baseTime
+		}
+		actualDeliveryDateStr = actualDeliveryDate.Format("2006-01-02")
+	}
 
 	signingTimeStr := input.SigningTime
 	if signingTimeStr == "" {
@@ -455,6 +471,7 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		UUID:                     input.UUID,
 		IssueDate:                issueDateStr,
 		IssueTime:                issueTimeStr,
+		ActualDeliveryDate:       actualDeliveryDateStr,
 		ICV:                      fmt.Sprintf("%d", input.ICV),
 		PreviousInvoiceHash:      encodePIH(input.PreviousInvoiceHash),
 		QRCode:                   input.QRCode,
@@ -494,6 +511,7 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		TaxableAmountO:           fmt.Sprintf("%.2f", totals.TaxableAmountO),
 		HasS:                     totals.TaxableAmountS > 0,
 		HasO:                     totals.TaxableAmountO > 0,
+		ShowActualDeliveryDate:   showActualDeliveryDate,
 		ReasonCode:               getExemptionCode("O"),
 	}
 

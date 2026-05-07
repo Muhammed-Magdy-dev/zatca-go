@@ -7,6 +7,7 @@ type InvoiceInput struct {
 	UUID                      string
 	SigningTime               string
 	IssueDate                 time.Time
+	ActualDeliveryDate        time.Time
 	ICV                       int
 	PublicKeyBase64           string
 	CertificateSignature      string
