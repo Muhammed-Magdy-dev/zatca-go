@@ -161,11 +161,6 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <cbc:InvoiceTypeCode name="{{.InvoiceTypeName}}">{{.InvoiceTypeCode}}</cbc:InvoiceTypeCode>
 <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
 <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
-{{if .ShowActualDeliveryDate}}
-<cac:Delivery>
-<cbc:ActualDeliveryDate>{{.ActualDeliveryDate}}</cbc:ActualDeliveryDate>
-</cac:Delivery>
-{{end}}
 {{if .BillingReferenceID}}
 <cac:BillingReference>
   <cac:InvoiceDocumentReference>
@@ -246,6 +241,11 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </cac:AccountingCustomerParty>
 {{else}}
 <cac:AccountingCustomerParty/>
+{{end}}
+{{if .ShowActualDeliveryDate}}
+<cac:Delivery>
+<cbc:ActualDeliveryDate>{{.ActualDeliveryDate}}</cbc:ActualDeliveryDate>
+</cac:Delivery>
 {{end}}
 <cac:PaymentMeans>
 <cbc:PaymentMeansCode>{{.PaymentMeansCode}}</cbc:PaymentMeansCode>
