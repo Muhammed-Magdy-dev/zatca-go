@@ -31,6 +31,7 @@ type CSRInput struct {
 	CountryCode          string
 	PosID                *uuid.UUID
 	InvoiceType          string
+	Environment          string
 }
 
 type CsrConfig struct {
@@ -71,7 +72,10 @@ func BuildCSRConfig(data *CSRInput, baseURL string) (*CsrConfig, error) {
 		country = strings.ToUpper(strings.TrimSpace(data.CountryCode))
 	}
 
-	env := determineEnvironment(baseURL)
+	env, err := resolveEnvironment(data.Environment, baseURL)
+	if err != nil {
+		return nil, err
+	}
 	serial := buildSerialNumber("Wasfa", commonName, data.PosID)
 	invoiceType, err := normalizeInvoiceType(data.InvoiceType)
 	if err != nil {
@@ -112,12 +116,42 @@ func normalizeVAT(v string) string {
 func determineEnvironment(baseURL string) string {
 	lower := strings.ToLower(strings.TrimSpace(baseURL))
 	switch {
-	case strings.Contains(lower, "nonproduction"):
+	case strings.Contains(lower, "nonproduction"),
+		strings.Contains(lower, "simulation"),
+		strings.Contains(lower, "developer-portal"),
+		strings.Contains(lower, "sandbox"),
+		strings.Contains(lower, "preprod"),
+		strings.Contains(lower, "pre-prod"):
 		return "nonProduction"
-	case strings.Contains(lower, "production") && !strings.Contains(lower, "simulation"):
+	case strings.Contains(lower, "/core"),
+		strings.Contains(lower, "production"):
 		return "production"
 	default:
-		return "simulation"
+		return "nonProduction"
+	}
+}
+
+func resolveEnvironment(explicit, baseURL string) (string, error) {
+	if env, ok, err := normalizeEnvironment(explicit); ok || err != nil {
+		return env, err
+	}
+
+	return determineEnvironment(baseURL), nil
+}
+
+func normalizeEnvironment(env string) (string, bool, error) {
+	normalized := strings.ToLower(strings.TrimSpace(env))
+	if normalized == "" {
+		return "", false, nil
+	}
+
+	switch normalized {
+	case "production", "prod", "core":
+		return "production", true, nil
+	case "nonproduction", "non-production", "preproduction", "pre-production", "preprod", "pre-prod", "simulation", "sandbox", "developer-portal":
+		return "nonProduction", true, nil
+	default:
+		return "", true, fmt.Errorf("zatca: invalid environment %q", env)
 	}
 }
 
