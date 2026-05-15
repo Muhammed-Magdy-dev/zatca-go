@@ -33,15 +33,17 @@ func calcLine(l InvoiceLine) lineTotals {
 }
 
 type InvoiceTotals struct {
-	LineExtensionAmount float64
-	TaxExclusiveAmount  float64
-	TaxInclusiveAmount  float64
-	AllowanceTotal      float64
-	ChargeTotal         float64
-	TaxAmount           float64
-	TaxableAmountS      float64
-	TaxAmountS          float64
-	TaxableAmountO      float64
+	LineExtensionAmount   float64
+	TaxExclusiveAmount    float64
+	TaxInclusiveAmount    float64
+	AllowanceTotal        float64
+	ChargeTotal           float64
+	PayableRoundingAmount float64
+	PayableAmount         float64
+	TaxAmount             float64
+	TaxableAmountS        float64
+	TaxAmountS            float64
+	TaxableAmountO        float64
 }
 
 func CalculateTotals(input *InvoiceInput) InvoiceTotals {
@@ -91,18 +93,21 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 
 	taxExclusive := round2(lineExtension - allowanceTotal + chargeTotal)
 	taxInclusive := round2(taxExclusive + taxAmountS)
+	payableRounding := round2(input.PayableRoundingAmount)
+	payableAmount := round2(taxInclusive + payableRounding)
 
 	return InvoiceTotals{
-		LineExtensionAmount: round2(lineExtension),
-		TaxExclusiveAmount:  taxExclusive,
-		TaxInclusiveAmount:  taxInclusive,
-		AllowanceTotal:      round2(allowanceTotal),
-		ChargeTotal:         round2(chargeTotal),
-		TaxAmount:           taxAmountS,
-
-		TaxableAmountS: taxableS,
-		TaxAmountS:     taxAmountS,
-		TaxableAmountO: round2(taxableO),
+		LineExtensionAmount:   round2(lineExtension),
+		TaxExclusiveAmount:    taxExclusive,
+		TaxInclusiveAmount:    taxInclusive,
+		AllowanceTotal:        round2(allowanceTotal),
+		ChargeTotal:           round2(chargeTotal),
+		PayableRoundingAmount: payableRounding,
+		PayableAmount:         payableAmount,
+		TaxAmount:             taxAmountS,
+		TaxableAmountS:        taxableS,
+		TaxAmountS:            taxAmountS,
+		TaxableAmountO:        round2(taxableO),
 	}
 }
 

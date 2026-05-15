@@ -31,6 +31,7 @@ type InvoiceInput struct {
 	BillingReferenceID        string
 	InvoiceTypeCode           string
 	InstructionNote           string
+	PayableRoundingAmount     float64
 	TaxableAmountS            float64
 	TaxAmountS                float64
 	TaxableAmountO            float64

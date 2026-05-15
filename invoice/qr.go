@@ -55,7 +55,7 @@ func BuildQRCodeTLVBase64(input *InvoiceInput) (string, error) {
 		return "", fmt.Errorf("failed to add timestamp: %w", err)
 	}
 
-	if err := addStringField(4, formatFloat2(totals.TaxInclusiveAmount)); err != nil {
+	if err := addStringField(4, formatFloat2(totals.PayableAmount)); err != nil {
 		return "", fmt.Errorf("failed to add total with VAT: %w", err)
 	}
 

@@ -73,6 +73,8 @@ type tmplData struct {
 	TaxInclusiveAmount       string
 	AllowanceTotal           string
 	ChargeTotal              string
+	PayableRoundingAmount    string
+	PayableAmount            string
 	TaxAmount                string
 	Lines                    []tmplLine
 	InvoiceLevelACs          []tmplAC
@@ -315,7 +317,8 @@ const invoiceTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <cbc:TaxInclusiveAmount currencyID="SAR">{{.TaxInclusiveAmount}}</cbc:TaxInclusiveAmount>
 <cbc:AllowanceTotalAmount currencyID="SAR">{{.AllowanceTotal}}</cbc:AllowanceTotalAmount>
 <cbc:ChargeTotalAmount currencyID="SAR">{{.ChargeTotal}}</cbc:ChargeTotalAmount>
-<cbc:PayableAmount currencyID="SAR">{{.TaxInclusiveAmount}}</cbc:PayableAmount>
+{{if .PayableRoundingAmount}}<cbc:PayableRoundingAmount currencyID="SAR">{{.PayableRoundingAmount}}</cbc:PayableRoundingAmount>{{end}}
+<cbc:PayableAmount currencyID="SAR">{{.PayableAmount}}</cbc:PayableAmount>
 </cac:LegalMonetaryTotal>
 {{- range .Lines}}
 <cac:InvoiceLine>
@@ -458,6 +461,11 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		customerRegistrationName = input.Customer.RegistrationName
 	}
 
+	payableRoundingAmount := ""
+	if totals.PayableRoundingAmount != 0 {
+		payableRoundingAmount = fmt.Sprintf("%.2f", totals.PayableRoundingAmount)
+	}
+
 	data := tmplData{
 		SigningTime:              signingTimeStr,
 		CertificateHash:          input.CertificateHash,
@@ -490,6 +498,8 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		TaxInclusiveAmount:       fmt.Sprintf("%.2f", totals.TaxInclusiveAmount),
 		AllowanceTotal:           fmt.Sprintf("%.2f", totals.AllowanceTotal),
 		ChargeTotal:              fmt.Sprintf("%.2f", totals.ChargeTotal),
+		PayableRoundingAmount:    payableRoundingAmount,
+		PayableAmount:            fmt.Sprintf("%.2f", totals.PayableAmount),
 		TaxAmount:                fmt.Sprintf("%.2f", totals.TaxAmount),
 		Lines:                    lines,
 		InvoiceLevelACs:          invoiceACs,
