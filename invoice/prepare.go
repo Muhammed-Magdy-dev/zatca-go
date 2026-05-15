@@ -21,7 +21,7 @@ func PrepareSignedInvoice(input *InvoiceInput, privateKeyPEM []byte, certPEM []b
 		return nil, err
 	}
 
-	input.IssuerName = certificate.Issuer.ToRDNSequence().String()
+	input.IssuerName = cert.FormatIssuerName(certificate)
 	input.SerialNumber = certificate.SerialNumber.String()
 	input.SigningTime = input.IssueDate.UTC().Format("2006-01-02T15:04:05")
 
