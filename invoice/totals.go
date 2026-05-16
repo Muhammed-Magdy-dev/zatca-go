@@ -44,6 +44,8 @@ type InvoiceTotals struct {
 	TaxableAmountS        float64
 	TaxAmountS            float64
 	TaxableAmountO        float64
+	HasS                  bool
+	HasO                  bool
 }
 
 func CalculateTotals(input *InvoiceInput) InvoiceTotals {
@@ -53,6 +55,8 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 	var taxableO float64
 	var allowanceTotal float64
 	var chargeTotal float64
+	var hasS bool
+	var hasO bool
 
 	for _, l := range input.Lines {
 		t := calcLine(l)
@@ -60,8 +64,10 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 		lineExtension += t.LineTotal
 
 		if l.VATRate > 0 {
+			hasS = true
 			taxableS += t.LineTotal
 		} else {
+			hasO = true
 			taxableO += t.LineTotal
 		}
 	}
@@ -72,8 +78,10 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 			chargeTotal += ac.Amount
 
 			if ac.TaxCategoryCode == "S" {
+				hasS = true
 				taxableS += ac.Amount
 			} else {
+				hasO = true
 				taxableO += ac.Amount
 			}
 
@@ -81,8 +89,10 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 			allowanceTotal += ac.Amount
 
 			if ac.TaxCategoryCode == "S" {
+				hasS = true
 				taxableS -= ac.Amount
 			} else {
+				hasO = true
 				taxableO -= ac.Amount
 			}
 		}
@@ -108,6 +118,8 @@ func CalculateTotals(input *InvoiceInput) InvoiceTotals {
 		TaxableAmountS:        taxableS,
 		TaxAmountS:            taxAmountS,
 		TaxableAmountO:        round2(taxableO),
+		HasS:                  hasS,
+		HasO:                  hasO,
 	}
 }
 

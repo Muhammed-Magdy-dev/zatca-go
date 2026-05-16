@@ -519,8 +519,8 @@ func BuildInvoiceXML(input *InvoiceInput) ([]byte, error) {
 		TaxableAmountS:           fmt.Sprintf("%.2f", totals.TaxableAmountS),
 		TaxAmountS:               fmt.Sprintf("%.2f", totals.TaxAmountS),
 		TaxableAmountO:           fmt.Sprintf("%.2f", totals.TaxableAmountO),
-		HasS:                     totals.TaxableAmountS > 0,
-		HasO:                     totals.TaxableAmountO > 0,
+		HasS:                     totals.HasS,
+		HasO:                     totals.HasO,
 		ShowActualDeliveryDate:   showActualDeliveryDate,
 		ReasonCode:               getExemptionCode("O"),
 	}
